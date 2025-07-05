@@ -14,7 +14,7 @@ type Graph[T comparable] struct {
 // 适用于JSON序列化，节点类型为interface{}以支持多种类型
 type GraphDTO struct {
 	// Nodes 存储图中的所有节点
-	Nodes []interface{} `json:"nodes"`
+	Nodes []any `json:"nodes"`
 	// Adjacency list，存储每个节点的邻居索引
 	Adj [][]int `json:"adj"`
 }
@@ -47,7 +47,7 @@ func NewGraphByNodeList[T comparable](l []Node[T]) *Graph[T] {
 // 适用于从序列化数据恢复图结构
 func NewGraphByDTO(dto *GraphDTO) *Graph[any] {
 	// 创建一个新的泛型图
-	g := NewGraph[interface{}]()
+	g := NewGraph[any]()
 	// 添加所有节点
 	for _, node := range dto.Nodes {
 		g.AddNode(node)
