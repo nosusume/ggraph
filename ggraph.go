@@ -116,6 +116,25 @@ func (g *Graph[T]) Nodes() []T {
 	return nodes
 }
 
+// Edges 返回图中所有边的切片
+// 每条边由起始节点和终止节点组成
+func (g *Graph[T]) Edges() []Edge[T] {
+	edges := make([]Edge[T], 0)
+	// Build index-to-node slice for O(1) lookups
+	indexToNode := make([]T, len(g.nodes))
+	for node, idx := range g.nodes {
+		indexToNode[idx] = node
+	}
+	for from, neighbors := range g.adj {
+		fromNode := indexToNode[from]
+		for _, to := range neighbors {
+			toNode := indexToNode[to]
+			edges = append(edges, Edge[T]{From: fromNode, To: toNode})
+		}
+	}
+	return edges
+}
+
 // String 返回图的字符串表示，包含所有节点和邻接表
 // 适用于调试和日志输出
 // 格式为：
