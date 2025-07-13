@@ -56,3 +56,66 @@ func TestNeighborsEmpty(t *testing.T) {
 	neighbors := graph.Neighbors(1)
 	assert.Empty(t, neighbors, "无邻居时应返回空列表")
 }
+func TestEdgeCountAndNodeCount(t *testing.T) {
+	graph := ggraph.NewGraph[int]()
+	graph.AddNode(1)
+	graph.AddNode(2)
+	graph.AddEdge(1, 2)
+	graph.AddEdge(2, 1)
+	assert.Equal(t, 2, graph.NodeCount(), "节点数量应为2")
+	assert.Equal(t, 2, graph.EdgeCount(), "边数量应为2")
+}
+
+func TestStringRepresentation(t *testing.T) {
+	graph := ggraph.NewGraph[string]()
+	graph.AddEdge("A", "B")
+	str := graph.String()
+	assert.Contains(t, str, "A: [B]", "字符串表示应包含A: [B]")
+	assert.Contains(t, str, "B: []", "字符串表示应包含B: []")
+}
+
+func TestToDTOAndNewGraphByDTO(t *testing.T) {
+	graph := ggraph.NewGraph[int]()
+	graph.AddEdge(1, 2)
+	dto := graph.ToDTO()
+	newGraph := ggraph.NewGraphByDTO(dto)
+	assert.True(t, newGraph.HasNode(1), "DTO恢复的图应包含节点1")
+	assert.True(t, newGraph.HasEdge(1, 2), "DTO恢复的图应包含边1->2")
+}
+
+type testNode struct {
+	val   int
+	edges []ggraph.Edge[int]
+}
+
+func (n testNode) This() int {
+	return n.val
+}
+func (n testNode) Edges() []ggraph.Edge[int] {
+	return n.edges
+}
+
+func TestNewGraphByNodeList(t *testing.T) {
+	nodes := []testNode{
+		{val: 1, edges: []ggraph.Edge[int]{{From: 1, To: 2}}},
+		{val: 2, edges: []ggraph.Edge[int]{}},
+	}
+	nodePtrs := make([]ggraph.Node[int], len(nodes))
+	for i := range nodes {
+		nodePtrs[i] = nodes[i]
+	}
+	graph := ggraph.NewGraphByNodeList(nodePtrs)
+	assert.True(t, graph.HasEdge(1, 2), "应通过NodeList添加边1->2")
+	assert.True(t, graph.HasNode(2), "应通过NodeList添加节点2")
+}
+
+func TestHasEdgeWithMissingNodes(t *testing.T) {
+	graph := ggraph.NewGraph[int]()
+	assert.False(t, graph.HasEdge(1, 2), "不存在节点时应返回false")
+}
+
+func TestNeighborsNonExistentNode(t *testing.T) {
+	graph := ggraph.NewGraph[int]()
+	neighbors := graph.Neighbors(999)
+	assert.Empty(t, neighbors, "不存在节点应返回空邻居列表")
+}
