@@ -1,6 +1,10 @@
 package ggraph
 
-import "slices"
+import (
+	"fmt"
+	"slices"
+	"strings"
+)
 
 // Graph 泛型邻接图结构，T为节点类型（需可比较）
 type Graph[T comparable] struct {
@@ -25,9 +29,13 @@ type Node[T comparable] interface {
 	// This 返回当前节点的值
 	This() T
 	// From 返回边的起始节点
-	From() T
-	// To 返回边的终止节点
-	To() T
+	Edges() []Edge[T]
+}
+
+// Edge 边数据结构
+type Edge[T comparable] struct {
+	From T `json:"from"` // 起始节点
+	To   T `json:"to"`   // 终止节点
 }
 
 func NewGraphByNodeList[T comparable](l []Node[T]) *Graph[T] {
@@ -36,9 +44,11 @@ func NewGraphByNodeList[T comparable](l []Node[T]) *Graph[T] {
 	// 遍历节点列表，添加节点和边
 	for _, node := range l {
 		g.AddNode(node.This())
-		g.AddNode(node.From())
-		g.AddNode(node.To())
-		g.AddEdge(node.From(), node.To())
+		for _, edge := range node.Edges() {
+			g.AddNode(edge.From)
+			g.AddNode(edge.To)
+			g.AddEdge(edge.From, edge.To)
+		}
 	}
 	return g
 }
@@ -106,6 +116,49 @@ func (g *Graph[T]) Nodes() []T {
 	return nodes
 }
 
+// String 返回图的字符串表示，包含所有节点和邻接表
+// 适用于调试和日志输出
+// 格式为：
+// Graph:
+//
+//	node1: [neighbor1, neighbor2, ...]
+//	node2: [neighbor1, neighbor2, ...]
+func (g *Graph[T]) String() string {
+	var builder strings.Builder
+	builder.WriteString("Graph:\n")
+	// 构建索引到节点的映射
+	indexToNode := make([]T, len(g.nodes))
+	for node, idx := range g.nodes {
+		indexToNode[idx] = node
+	}
+	for idx, node := range indexToNode {
+		builder.WriteString(fmt.Sprintf("  %v: [", node))
+		neighbors := g.adj[idx]
+		for i, nIdx := range neighbors {
+			builder.WriteString(fmt.Sprintf("%v", indexToNode[nIdx]))
+			if i < len(neighbors)-1 {
+				builder.WriteString(", ")
+			}
+		}
+		builder.WriteString("]\n")
+	}
+	return builder.String()
+}
+
+// NodeCount 返回图中所有节点的数量
+func (g *Graph[T]) NodeCount() int {
+	return len(g.nodes)
+}
+
+// EdgeCount 返回图中所有边的数量
+func (g *Graph[T]) EdgeCount() int {
+	count := 0
+	for _, neighbors := range g.adj {
+		count += len(neighbors)
+	}
+	return count
+}
+
 // Neighbors 返回指定节点的所有邻居（邻接表直接映射）
 func (g *Graph[T]) Neighbors(node T) []T {
 	// 获取节点索引
@@ -128,10 +181,6 @@ func (g *Graph[T]) Neighbors(node T) []T {
 
 // HasNode 检查图中是否存在指定节点
 func (g *Graph[T]) HasNode(node T) bool {
-	// 检查节点索引是否存在
-	if _, exists := g.nodes[node]; !exists {
-		return false
-	}
 	_, exists := g.nodes[node]
 	return exists
 }
